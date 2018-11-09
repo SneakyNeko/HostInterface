@@ -131,6 +131,22 @@ int main(void)
 			ioport_set_pin_level(LED0_GPIO, LED0_INACTIVE_LEVEL);
 		}
 
+#if USB_ENABLE
+		{
+			/* if USB is enabled, print the received data out the USB virtual
+				serial port */
+			unsigned int i;
+			for(i = 0; i < BUFFER_SIZE - SYNC_SEQ_LEN; i++)
+			{
+				while(!udi_cdc_is_tx_ready()) {};
+				if(pcBuffer[i] != '\0')
+				{
+					udi_cdc_putc(pcBuffer[i]);
+				}
+			}
+		}
+#endif
+
 		/* now the packet has been processed, prepare to receive the next */
 		{
 			/* ensure the USART Receive Holding Register is empty */
@@ -143,22 +159,6 @@ int main(void)
 		/* restart the RX DMA to receive the next incoming message */
 		xdmac_configure_transfer(XDMAC, DMA_CHANNEL_RX, &stRxConfig);
 		xdmac_channel_enable(XDMAC, DMA_CHANNEL_RX);
-
-#if USB_ENABLE
-		{
-			/* if USB is enabled, print the received data out the USB virtual
-				serial port */
-			unsigned int i;
-			for(i = 0; i < BUFFER_SIZE-3; i++)
-			{
-				while(!udi_cdc_is_tx_ready()) {};
-				if(pcBuffer[i] != '\0')
-				{
-					udi_cdc_putc(pcBuffer[i]);
-				}
-			}
-		}
-#endif
 	}
 
 	/* we should never get here */
